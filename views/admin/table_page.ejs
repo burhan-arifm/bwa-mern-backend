@@ -1,0 +1,37 @@
+            <%- include('../partials/upper-docs.ejs', {adds: `<!-- Custom styles for this page -->
+                <link href="/css/dataTables.bootstrap4.min.css" rel="stylesheet">`}) %>
+
+            <!-- Begin Page Content -->
+            <div class="container-fluid">
+                <% if(alert.message != "") { %>
+                    <div class="alert alert-<%= alert.status %>" role="alert">
+                        <%= alert.message %>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <% } %>
+                <!-- Page Heading -->
+                <h1 class="h3 mb-4 text-gray-800"><%= title %></h1>
+
+                <%- include('../components/table.ejs') %>
+            </div>
+            <!-- /.container-fluid -->
+        </div>
+        <!-- End of Main Content -->
+
+        <%- include('../components/footer.ejs') %>
+    </div>
+    <!-- End of Content Wrapper -->
+</div>
+<!-- End of Page Wrapper -->
+<%- include('../components/modal.ejs', {type: "add"}) %>
+<%- include('../components/modal.ejs', {type: "edit"}) %>
+<%- include('../partials/bottom-docs.ejs', {adds: `<!-- Page level plugins -->
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <script src="/js/dataTables.bootstrap4.min.js"></script>
+    <script src="/js/inject-update.js"></script>
+    <script src="/js/inject-delete.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="/js/datatables-demo.js"></script>`}) %>
