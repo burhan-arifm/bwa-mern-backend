@@ -33,16 +33,16 @@
                             <% Object.keys(data._doc).slice(1, -1).forEach(key => { %>
                                 <td>
                                     <% if (key==="imageUrl") { %>
-                                        <img src="/<%= data[key] %>" alt="Bank Logo" height="70px" width="auto">
+                                        <img src="<%= data[key] %>" alt="Bank Logo" height="70px" width="auto">
                                     <% } else { %>
                                         <%= data[key] %>
                                     <% } %>
                                 </td>
                             <% }) %>
                             <td>
+                                <form id="delete-<%= data['_id'] %>" action="<%= `${url}/${data['_id']}?_method=DELETE` %>" method="POST"></form>
                                 <button class="btn btn-primary btn-circle btn-sm btn-update" data-toggle="modal" data-target="#edit<%= title %>Modal" data-item="<%= JSON.stringify(data) %>" ><i class="fas fa-edit"></i></button>
                                 <button class="btn btn-danger btn-circle btn-sm" type="submit" form="delete-<%= data['_id'] %>"><i class="fas fa-trash"></i></button>
-                                <form id="delete-<%= data['_id'] %>" action="<%= `${url}/${data['_id']}?_method=DELETE` %>" method="POST"></form>
                             </td>
                         </tr>
                     <% }) %>

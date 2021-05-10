@@ -1,4 +1,8 @@
+const fs = require("fs-extra");
+const path = require("path");
+
 const Category = require("../models/Category");
+const Bank = require("../models/Bank");
 
 module.exports = {
   viewDashboard: (req, res) => {
@@ -12,18 +16,24 @@ module.exports = {
 
       res.render("admin/table_page", {
         title: "Category",
-        headers: [{ title: "Name", type: "text", isRequired: true }],
+        headers: [
+          { title: "Name", name: "name", type: "text", isRequired: true },
+        ],
         url: req.originalUrl,
         sets: categories,
         alert: { message: alertMessage, status: alertStatus },
       });
     } catch (error) {
-      console.error(error);
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/categories");
     }
   },
   addCategory: async (req, res) => {
     try {
-      const { name } = req.body;
+      const {
+        body: { name },
+      } = req.body;
 
       await Category.create({ name });
       req.flash("alertMessage", `New Category Added: ${name}`);
@@ -37,8 +47,10 @@ module.exports = {
   },
   updateCategory: async (req, res) => {
     try {
-      const { name } = req.body;
-      const { id } = req.params;
+      const {
+        body: { name },
+        params: { id },
+      } = req;
       const category = await Category.findOne({ _id: id });
       const oldName = category.name;
 
@@ -58,7 +70,9 @@ module.exports = {
   },
   deleteCategory: async (req, res) => {
     try {
-      const { id } = req.params;
+      const {
+        params: { id },
+      } = req;
       const category = await Category.findOne({ _id: id });
       const oldName = category.name;
 
@@ -72,17 +86,123 @@ module.exports = {
       res.redirect("/admin/categories");
     }
   },
-  viewBank: (req, res) => {
-    res.render("admin/table_page", {
-      title: "Bank",
-      headers: [
-        { title: "Bank", type: "text", isRequired: true },
-        { title: "Bank Logo", type: "file", isRequired: true },
-        { title: "Account", type: "text", isRequired: true },
-        { title: "Account Holder", type: "text", isRequired: true },
-      ],
-      url: req.originalUrl,
-    });
+  viewBank: async (req, res) => {
+    try {
+      const banks = await Bank.find();
+      const alertMessage = req.flash("alertMessage");
+      const alertStatus = req.flash("alertStatus");
+
+      res.render("admin/table_page", {
+        title: "Bank",
+        headers: [
+          { title: "Bank", name: "name", type: "text", isRequired: true },
+          {
+            title: "Bank Logo",
+            name: "image",
+            type: "file",
+            isRequired: true,
+          },
+          {
+            title: "Account",
+            name: "accountNumber",
+            type: "text",
+            isRequired: true,
+          },
+          {
+            title: "Account Holder",
+            name: "accountOwner",
+            type: "text",
+            isRequired: true,
+          },
+        ],
+        url: req.originalUrl,
+        sets: banks,
+        alert: { message: alertMessage, status: alertStatus },
+      });
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/banks");
+    }
+  },
+  addBank: async (req, res) => {
+    try {
+      const {
+        body: { name, accountNumber, accountOwner },
+        file: { filename },
+      } = req;
+
+      await Bank.create({
+        name,
+        imageUrl: `/images/${filename}`,
+        accountNumber,
+        accountOwner,
+      });
+      req.flash(
+        "alertMessage",
+        `New Bank Account Added: ${name} ${accountNumber} - ${accountOwner}`
+      );
+      req.flash("alertStatus", "success");
+      res.redirect("/admin/banks");
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/banks");
+    }
+  },
+  updateBank: async (req, res) => {
+    try {
+      const {
+        body: { name, accountNumber, accountOwner },
+        file,
+        params: { id },
+      } = req;
+      const bank = await Bank.findOne({ _id: id });
+      const oldName = bank.name;
+      const oldAccountNumber = bank.accountNumber;
+      const oldAccountOwner = bank.accountOwner;
+
+      if (file !== undefined) {
+        await fs.unlink(path.join(`public/${bank.imageUrl}`));
+        bank.imageUrl = `/images/${file.filename}`;
+      }
+      bank.name = name;
+      bank.accountNumber = accountNumber;
+      bank.accountOwner = accountOwner;
+      await bank.save();
+      req.flash(
+        "alertMessage",
+        `Bank Updated: ${oldName} ${oldAccountNumber} - ${oldAccountOwner} → ${bank.name} ${bank.accountNumber} - ${bank.accountOwner}`
+      );
+      req.flash("alertStatus", "success");
+      res.redirect("/admin/banks");
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/banks");
+    }
+  },
+  deleteBank: async (req, res) => {
+    try {
+      const {
+        params: { id },
+      } = req;
+      const bank = await Bank.findOne({ _id: id });
+      const { name, imageUrl, accountNumber, accountOwner } = bank;
+      await fs.unlink(path.join(`public/${imageUrl}`));
+
+      await bank.remove();
+      req.flash(
+        "alertMessage",
+        `Bank Deleted: ${name} ${accountNumber} - ${accountOwner}`
+      );
+      req.flash("alertStatus", "success");
+      res.redirect("/admin/banks");
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/banks");
+    }
   },
   viewItem: (req, res) => {
     res.render("admin/table_page", {

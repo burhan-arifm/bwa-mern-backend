@@ -4,6 +4,10 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  imageUrl: {
+    type: String,
+    required: true,
+  },
   accountNumber: {
     type: String,
     required: true,

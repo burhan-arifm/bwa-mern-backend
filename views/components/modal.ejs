@@ -8,14 +8,24 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="<%= `${type}${title}` %>Form" method="POST" action="<%= `${url}${type==='edit'?`/id?_method=PUT`:''}` %>">
+                <form id="<%= `${type}${title}` %>Form" method="POST" action="<%= `${url}${type==='edit'?`/id?_method=PUT`:''}` %>" enctype="multipart/form-data">
                     <% typeof(headers)!=="undefined" && headers.forEach(header => { %>
                         <div class="form-group">
-                            <label for="<%= header.title.toLowerCase() %>"><%= header.title %></label>
-                            <% if(header.isRequired) {%>
-                                <input type="<%= header.type %>" class="form-control" id="<%= header.title.toLowerCase() %>" name="<%= header.title.toLowerCase() %>" value="" required>
+                            <label for="<%= `${type}${header.name}` %>"><%= header.title %></label>
+                            <%if(header.type==='file') {%>
+                                <div class="custom-file">
+                                    <% if(type==="edit") {%>
+                                        <input type="file" class="custom-file-input" id="<%= `${type}${header.name}` %>" name="<%= header.name %>" onchange="handleImageUpload(this)" value="" >
+                                    <% } else { %>
+                                        <input type="file" class="custom-file-input" id="<%= `${type}${header.name}` %>" name="<%= header.name %>" onchange="handleImageUpload(this)" value="" required>
+                                    <% } %>
+                                    <label class="custom-file-label" for="<%= `${type}${header.name}` %>">Upload Image</label>
+                                </div>
+                                <img src="https://via.placeholder.com/150.png?text=Preview+Image" alt="Preview Uploaded Image" class="img-fluid mt-1 image-preview">
+                            <% } else if(header.isRequired) {%>
+                                <input type="<%= header.type %>" class="form-control" id="<%= `${type}${header.name}` %>" name="<%= header.name %>" value="" placeholder="Enter <%= header.title.toLowerCase() %>" required>
                             <% } else {%>
-                                <input type="<%= header.type %>" class="form-control" id="<%= header.title.toLowerCase() %>" name="<%= header.title.toLowerCase() %>" value="" >
+                                <input type="<%= header.type %>" class="form-control" id="<%= `${type}${header.name}` %>" name="<%= header.name %>" value="" placeholder="Enter <%= header.title.toLowerCase() %>" >
                             <% } %>
                         </div>
                     <% }) %>

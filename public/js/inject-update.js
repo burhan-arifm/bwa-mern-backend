@@ -6,11 +6,15 @@ $("#dataTable").on("click", ".btn-update", function () {
     $("form[id^=edit]")
       .attr("action")
       .replace(
-        /(\/admin\/categories\/)[a-zA-Z0-9]*(\?_method=PUT)/gi,
+        /(\/admin\/[a-zA-Z]+\/)[a-zA-Z0-9]*(\?_method=PUT)/gi,
         `$1${_id}$2`
       )
   );
   Object.keys(rest).forEach((key) => {
-    $(`input#${key}`)[1].value = rest[key];
+    if (key === "imageUrl") {
+      $("img.image-preview")[1].src = rest[key];
+    } else {
+      $(`input#edit${key}`)[0].value = rest[key];
+    }
   });
 });

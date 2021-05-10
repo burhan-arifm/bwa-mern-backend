@@ -61,3 +61,5 @@ typings/
 .next
 
 .vscode
+public/images
+!public/images/undraw_posting_photo.svg
