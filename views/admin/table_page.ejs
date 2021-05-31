@@ -14,7 +14,15 @@
                 <!-- Page Heading -->
                 <h1 class="h3 mb-4 text-gray-800"><%= title %></h1>
 
-                <%- include('../components/table.ejs') %>
+                <!-- DataTales Example -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#add<%= title %>Modal">
+                            <i class="fas fa-plus"></i> Add New <%= title %>
+                        </button>
+                    </div>
+                    <%- include('../components/table.ejs') %>
+                </div>
             </div>
             <!-- /.container-fluid -->
         </div>
@@ -30,8 +38,10 @@
 <%- include('../partials/bottom-docs.ejs', {adds: `<!-- Page level plugins -->
     <script src="/js/jquery.dataTables.min.js"></script>
     <script src="/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/27.1.0/classic/ckeditor.js"></script>
     <script src="/js/inject-update.js"></script>
     <script src="/js/inject-image-preview.js"></script>
+    <script src="/js/inject-texteditor.js"></script>
 
     <!-- Page level custom scripts -->
     <script src="/js/datatables-demo.js"></script>`}) %>

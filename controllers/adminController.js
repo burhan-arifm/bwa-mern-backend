@@ -1,8 +1,43 @@
+const ImageKit = require("imagekit");
+const dataUri = require("datauri/sync");
 const fs = require("fs-extra");
-const path = require("path");
 
 const Category = require("../models/Category");
 const Bank = require("../models/Bank");
+const Item = require("../models/Item");
+
+const imageKit = new ImageKit({
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URI,
+});
+
+const uploader = async (file) => {
+  const content = dataUri(file.path).content;
+
+  // console.log(content);
+  return await imageKit
+    .upload({
+      file: content,
+      fileName: file.originalname,
+    })
+    .then((response) => {
+      fs.unlink(file.path);
+
+      return response.fileId;
+    })
+    .catch((err) => err);
+};
+const getUrl = async (imageId) =>
+  await imageKit
+    .getFileDetails(imageId)
+    .then((response) => response.url)
+    .catch((err) => err);
+const deleteImage = async (imageId) =>
+  await imageKit
+    .deleteFile(imageId)
+    .then((response) => {})
+    .catch((err) => err);
 
 module.exports = {
   viewDashboard: (req, res) => {
@@ -16,9 +51,13 @@ module.exports = {
 
       res.render("admin/table_page", {
         title: "Category",
-        headers: [
-          { title: "Name", name: "name", type: "text", isRequired: true },
-        ],
+        headers: [{ title: "Name", key: "name" }],
+        form: {
+          size: "medium",
+          inputs: [
+            { label: "Name", name: "name", type: "text", isRequired: true },
+          ],
+        },
         url: req.originalUrl,
         sets: categories,
         alert: { message: alertMessage, status: alertStatus },
@@ -88,36 +127,59 @@ module.exports = {
   },
   viewBank: async (req, res) => {
     try {
-      const banks = await Bank.find();
+      const fetchedBanks = await Bank.find();
       const alertMessage = req.flash("alertMessage");
       const alertStatus = req.flash("alertStatus");
+      const promises = fetchedBanks.map(async (bank) => {
+        return { ...bank._doc, image: await getUrl(bank.imageId) };
+      });
 
-      res.render("admin/table_page", {
-        title: "Bank",
-        headers: [
-          { title: "Bank", name: "name", type: "text", isRequired: true },
-          {
-            title: "Bank Logo",
-            name: "image",
-            type: "file",
-            isRequired: true,
+      Promise.all(promises).then((banks) => {
+        res.render("admin/table_page", {
+          title: "Bank",
+          headers: [
+            { title: "Bank", key: "name" },
+            {
+              title: "Bank Logo",
+              key: "image",
+            },
+            {
+              title: "Account",
+              key: "accountNumber",
+            },
+            {
+              title: "Account Holder",
+              key: "accountOwner",
+            },
+          ],
+          form: {
+            size: "medium",
+            inputs: [
+              { label: "Bank", name: "name", type: "text", isRequired: true },
+              {
+                label: "Bank Logo",
+                name: "image",
+                type: "file",
+                isRequired: true,
+              },
+              {
+                label: "Account",
+                name: "accountNumber",
+                type: "text",
+                isRequired: true,
+              },
+              {
+                label: "Account Holder",
+                name: "accountOwner",
+                type: "text",
+                isRequired: true,
+              },
+            ],
           },
-          {
-            title: "Account",
-            name: "accountNumber",
-            type: "text",
-            isRequired: true,
-          },
-          {
-            title: "Account Holder",
-            name: "accountOwner",
-            type: "text",
-            isRequired: true,
-          },
-        ],
-        url: req.originalUrl,
-        sets: banks,
-        alert: { message: alertMessage, status: alertStatus },
+          url: req.originalUrl,
+          sets: banks,
+          alert: { message: alertMessage, status: alertStatus },
+        });
       });
     } catch (error) {
       req.flash("alertMessage", `${error.message}`);
@@ -129,12 +191,12 @@ module.exports = {
     try {
       const {
         body: { name, accountNumber, accountOwner },
-        file: { filename },
+        file,
       } = req;
 
       await Bank.create({
         name,
-        imageUrl: `/images/${filename}`,
+        imageId: await uploader(file),
         accountNumber,
         accountOwner,
       });
@@ -163,8 +225,9 @@ module.exports = {
       const oldAccountOwner = bank.accountOwner;
 
       if (file !== undefined) {
-        await fs.unlink(path.join(`public/${bank.imageUrl}`));
-        bank.imageUrl = `/images/${file.filename}`;
+        await deleteImage(bank.imageId).then(async (result) => {
+          bank.imageId = await uploader(file);
+        });
       }
       bank.name = name;
       bank.accountNumber = accountNumber;
@@ -188,9 +251,9 @@ module.exports = {
         params: { id },
       } = req;
       const bank = await Bank.findOne({ _id: id });
-      const { name, imageUrl, accountNumber, accountOwner } = bank;
-      await fs.unlink(path.join(`public/${imageUrl}`));
+      const { name, imageId, accountNumber, accountOwner } = bank;
 
+      await deleteImage(imageId);
       await bank.remove();
       req.flash(
         "alertMessage",
@@ -204,17 +267,60 @@ module.exports = {
       res.redirect("/admin/banks");
     }
   },
-  viewItem: (req, res) => {
-    res.render("admin/table_page", {
-      title: "Item",
-      headers: [
-        { title: "Title", type: "text", isRequired: true },
-        { title: "Price", type: "text", isRequired: true },
-        { title: "City", type: "text", isRequired: true },
-        { title: "Country", type: "text", isRequired: true },
-      ],
-      url: req.originalUrl,
-    });
+  viewItem: async (req, res) => {
+    try {
+      const items = await Item.find();
+      const alertMessage = req.flash("alertMessage");
+      const alertStatus = req.flash("alertStatus");
+
+      res.render("admin/table_page", {
+        title: "Item",
+        headers: [
+          { title: "Category", key: "categoryId" },
+          { title: "Title", key: "title" },
+          { title: "Price", key: "price" },
+          { title: "City", key: "city" },
+          { title: "Country", key: "country" },
+        ],
+        form: {
+          size: "large",
+          inputs: [
+            { label: "Title", name: "title", type: "text", isRequired: true },
+            {
+              label: "Category",
+              name: "categoryId",
+              type: "select",
+              isRequired: true,
+            },
+            { label: "Price", name: "price", type: "text", isRequired: true },
+            { label: "City", name: "city", type: "text", isRequired: true },
+            {
+              label: "Country",
+              name: "country",
+              type: "text",
+              isRequired: true,
+            },
+            { label: "Image", name: "image", type: "file", isRequired: true },
+            {
+              label: "Description",
+              name: "description",
+              type: "longtext",
+              isRequired: true,
+            },
+          ],
+          datasets: {
+            categoryId: await Category.find(),
+          },
+        },
+        url: req.originalUrl,
+        sets: items,
+        alert: { message: alertMessage, status: alertStatus },
+      });
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
   },
   viewBooking: (req, res) => {
     res.render("admin/table_page", {

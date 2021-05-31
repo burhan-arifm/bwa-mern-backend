@@ -1,53 +1,45 @@
-<!-- DataTales Example -->
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#add<%= title %>Modal">
-            <i class="fas fa-plus"></i> Add New <%= title %>
-        </button>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <% typeof(headers)!=="undefined" && headers.forEach(header => { %>
-                            <th><%= header.title %></th>
-                        <% }) %>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tfoot>
-                    <tr>
-                        <th>No.</th>
-                        <% typeof(headers)!=="undefined" && headers.forEach(header => { %>
-                            <th><%= header.title %></th>
-                        <% }) %>
-                        <th>Action</th>
-                    </tr>
-                </tfoot>
-                <tbody>
-                    <% typeof(sets)!=="undefined" && Object.values(sets).forEach((data, index) => { %>
-                        <tr>
-                            <td><%= index + 1 %></td>
-                            <% Object.keys(data._doc).slice(1, -1).forEach(key => { %>
-                                <td>
-                                    <% if (key==="imageUrl") { %>
-                                        <img src="<%= data[key] %>" alt="Bank Logo" height="70px" width="auto">
-                                    <% } else { %>
-                                        <%= data[key] %>
-                                    <% } %>
-                                </td>
-                            <% }) %>
-                            <td>
-                                <form id="delete-<%= data['_id'] %>" action="<%= `${url}/${data['_id']}?_method=DELETE` %>" method="POST"></form>
-                                <button class="btn btn-primary btn-circle btn-sm btn-update" data-toggle="modal" data-target="#edit<%= title %>Modal" data-item="<%= JSON.stringify(data) %>" ><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-danger btn-circle btn-sm" type="submit" form="delete-<%= data['_id'] %>"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
+<div class="card-body">
+    <div class="table-responsive">
+        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <% typeof(headers)!=="undefined" && headers.forEach(header => { %>
+                        <th><%= header.title %></th>
                     <% }) %>
-                </tbody>
-            </table>
-        </div>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tfoot>
+                <tr>
+                    <th>No.</th>
+                    <% typeof(headers)!=="undefined" && headers.forEach(header => { %>
+                        <th><%= header.title %></th>
+                    <% }) %>
+                    <th>Action</th>
+                </tr>
+            </tfoot>
+            <tbody>
+                <% typeof(sets)!=="undefined" && Object.values(sets).forEach((data, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <% typeof(headers)!=="undefined" && headers.forEach(({key}) => { %>
+                            <td>
+                                <% if (key==="image") { %>
+                                    <img src="<%= data[key] %>" alt="Bank Logo" width="80px">
+                                <% } else { %>
+                                    <%= data[key] %>
+                                <% } %>
+                            </td>
+                        <% }) %>
+                        <td>
+                            <form id="delete-<%= data['_id'] %>" action="<%= `${url}/${data['_id']}?_method=DELETE` %>" method="POST"></form>
+                            <button class="btn btn-primary btn-circle btn-sm btn-update" data-toggle="modal" data-target="#edit<%= title %>Modal" data-item="<%= JSON.stringify(data) %>" ><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-circle btn-sm" type="submit" form="delete-<%= data['_id'] %>"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
     </div>
 </div>

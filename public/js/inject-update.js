@@ -13,6 +13,8 @@ $("#dataTable").on("click", ".btn-update", function () {
   Object.keys(rest).forEach((key) => {
     if (key === "imageUrl") {
       $("img.image-preview")[1].src = rest[key];
+    } else if (key === "longtext") {
+      $("textarea.editor").innerHTML = rest[key];
     } else {
       $(`input#edit${key}`)[0].value = rest[key];
     }
