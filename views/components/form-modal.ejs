@@ -1,4 +1,4 @@
-<div class="modal fade" id="<%= `${type}${title}` %>Modal" tabindex="-1" aria-labelledby="<%= `${type}${title}` %>ModalLabel" aria-hidden="true">
+<div class="modal fade" id="<%= type %>Modal" tabindex="-1" aria-labelledby="<%= type %>ModalLabel" aria-hidden="true">
     <div class="modal-dialog<%= `${form.size==='large'?' modal-lg':''}` %>">
         <div class="modal-content">
             <div class="modal-header">
@@ -10,18 +10,25 @@
             <div class="modal-body">
                 <form id="<%= `${type}${title}` %>Form" method="POST" action="<%= `${url}${type==='edit'?`/id?_method=PUT`:''}` %>" enctype="multipart/form-data">
                     <% typeof(form.inputs)!=="undefined" && form.inputs.forEach(input => { %>
-                        <div class="form-group">
+                        <div class="<%= `form-group${input.type==='file' ? ' image-preview-container' : ''}` %>">
                             <label for="<%= `${type}${input.name}` %>"><%= input.label %></label>
                             <% if(input.type==='file') { %>
                                 <div class="custom-file">
-                                    <% if(input.type==="edit") {%>
-                                        <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" >
+                                    <% if (input.canMultiple) {%>
+                                        <% if(input.type==="edit") {%>
+                                            <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" multiple >
+                                        <% } else { %>
+                                            <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" required multiple >
+                                        <% } %>
                                     <% } else { %>
-                                        <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" required>
+                                        <% if(input.type==="edit") {%>
+                                            <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" >
+                                        <% } else { %>
+                                            <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" required >
+                                        <% } %>
                                     <% } %>
                                     <label class="custom-file-label" for="<%= `${type}${input.name}` %>">Upload Image</label>
                                 </div>
-                                <img src="https://via.placeholder.com/150.png?text=Preview+Image" alt="Preview Uploaded Image" class="img-fluid mt-1 image-preview">
                             <% } else if(input.type==='select' && typeof(form.datasets[input.name])!=="undefined") {%>
                                 <select id="<%= `${type}${input.name}` %>" name="<%= input.name %>" class="form-control">
                                     <option selected hidden disabled>Choose item category</option>

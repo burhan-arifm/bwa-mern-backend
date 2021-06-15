@@ -25,8 +25,13 @@
                         <td><%= index + 1 %></td>
                         <% typeof(headers)!=="undefined" && headers.forEach(({key}) => { %>
                             <td>
-                                <% if (key==="image") { %>
+                                <% if (key==="imageThumbnail") { %>
                                     <img src="<%= data[key] %>" alt="Bank Logo" width="80px">
+                                <% } else if (key==="storedImages") { %>
+                                    <div class="d-flex justify-content-between">
+                                        <%= data[key] %>
+                                    <a href="<%= `${url}/${data['_id']}/media` %>" class="btn btn-primary btn-circle btn-sm btn-update"><i class="fa fa-image"></i></a>
+                                    </div>
                                 <% } else { %>
                                     <%= data[key] %>
                                 <% } %>
@@ -34,7 +39,7 @@
                         <% }) %>
                         <td>
                             <form id="delete-<%= data['_id'] %>" action="<%= `${url}/${data['_id']}?_method=DELETE` %>" method="POST"></form>
-                            <button class="btn btn-primary btn-circle btn-sm btn-update" data-toggle="modal" data-target="#edit<%= title %>Modal" data-item="<%= JSON.stringify(data) %>" ><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-primary btn-circle btn-sm btn-update" data-toggle="modal" data-target="#editModal" data-item="<%= JSON.stringify(data) %>" ><i class="fas fa-edit"></i></button>
                             <button class="btn btn-danger btn-circle btn-sm" type="submit" form="delete-<%= data['_id'] %>"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>

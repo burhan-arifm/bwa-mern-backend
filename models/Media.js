@@ -1,22 +1,17 @@
 const mongoose = require("mongoose");
-const { ObjectId } = mongoose.Schema;
 const schema = new mongoose.Schema({
-  name: {
+  mediaId: {
     type: String,
     required: true,
   },
-  bankLogo: {
-    type: ObjectId,
-    ref: "Media",
-  },
-  accountNumber: {
+  url: {
     type: String,
     required: true,
   },
-  accountOwner: {
+  thumbnail: {
     type: String,
     required: true,
   },
 });
 
-module.exports = mongoose.model("Bank", schema);
+module.exports = mongoose.model("Media", schema);

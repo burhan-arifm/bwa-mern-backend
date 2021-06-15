@@ -5,6 +5,7 @@ const fs = require("fs-extra");
 const Category = require("../models/Category");
 const Bank = require("../models/Bank");
 const Item = require("../models/Item");
+const Media = require("../models/Media");
 
 const imageKit = new ImageKit({
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
@@ -15,7 +16,6 @@ const imageKit = new ImageKit({
 const uploader = async (file) => {
   const content = dataUri(file.path).content;
 
-  // console.log(content);
   return await imageKit
     .upload({
       file: content,
@@ -24,15 +24,14 @@ const uploader = async (file) => {
     .then((response) => {
       fs.unlink(file.path);
 
-      return response.fileId;
+      return {
+        mediaId: response.fileId,
+        url: response.url,
+        thumbnail: response.thumbnailUrl,
+      };
     })
     .catch((err) => err);
 };
-const getUrl = async (imageId) =>
-  await imageKit
-    .getFileDetails(imageId)
-    .then((response) => response.url)
-    .catch((err) => err);
 const deleteImage = async (imageId) =>
   await imageKit
     .deleteFile(imageId)
@@ -41,7 +40,13 @@ const deleteImage = async (imageId) =>
 
 module.exports = {
   viewDashboard: (req, res) => {
-    res.render("admin/dashboard", { title: "Dashboard" });
+    const alertMessage = req.flash("alertMessage");
+    const alertStatus = req.flash("alertStatus");
+
+    res.render("admin/dashboard", {
+      title: "Dashboard",
+      alert: { message: alertMessage, status: alertStatus },
+    });
   },
   viewCategory: async (req, res) => {
     try {
@@ -65,7 +70,7 @@ module.exports = {
     } catch (error) {
       req.flash("alertMessage", `${error.message}`);
       req.flash("alertStatus", "danger");
-      res.redirect("/admin/categories");
+      res.redirect("/admin");
     }
   },
   addCategory: async (req, res) => {
@@ -127,64 +132,73 @@ module.exports = {
   },
   viewBank: async (req, res) => {
     try {
-      const fetchedBanks = await Bank.find();
+      const fetchedBanks = await Bank.find().populate({
+        path: "bankLogo",
+        select: "url thumbnail",
+      });
       const alertMessage = req.flash("alertMessage");
       const alertStatus = req.flash("alertStatus");
-      const promises = fetchedBanks.map(async (bank) => {
-        return { ...bank._doc, image: await getUrl(bank.imageId) };
+      const banks = fetchedBanks.map((bank) => {
+        const { bankLogo, ...rest } = bank._doc;
+
+        return {
+          ...rest,
+          imageThumbnail: bankLogo.thumbnail,
+          imageUrl: bankLogo.url,
+        };
       });
 
-      Promise.all(promises).then((banks) => {
-        res.render("admin/table_page", {
-          title: "Bank",
-          headers: [
-            { title: "Bank", key: "name" },
+      console.log(banks);
+
+      res.render("admin/table_page", {
+        title: "Bank",
+        headers: [
+          { title: "Bank", key: "name" },
+          {
+            title: "Bank Logo",
+            key: "imageThumbnail",
+          },
+          {
+            title: "Account",
+            key: "accountNumber",
+          },
+          {
+            title: "Account Holder",
+            key: "accountOwner",
+          },
+        ],
+        form: {
+          size: "medium",
+          inputs: [
+            { label: "Bank", name: "name", type: "text", isRequired: true },
             {
-              title: "Bank Logo",
-              key: "image",
+              label: "Bank Logo",
+              name: "image",
+              type: "file",
+              isRequired: true,
             },
             {
-              title: "Account",
-              key: "accountNumber",
+              label: "Account",
+              name: "accountNumber",
+              type: "text",
+              isRequired: true,
             },
             {
-              title: "Account Holder",
-              key: "accountOwner",
+              label: "Account Holder",
+              name: "accountOwner",
+              type: "text",
+              isRequired: true,
             },
           ],
-          form: {
-            size: "medium",
-            inputs: [
-              { label: "Bank", name: "name", type: "text", isRequired: true },
-              {
-                label: "Bank Logo",
-                name: "image",
-                type: "file",
-                isRequired: true,
-              },
-              {
-                label: "Account",
-                name: "accountNumber",
-                type: "text",
-                isRequired: true,
-              },
-              {
-                label: "Account Holder",
-                name: "accountOwner",
-                type: "text",
-                isRequired: true,
-              },
-            ],
-          },
-          url: req.originalUrl,
-          sets: banks,
-          alert: { message: alertMessage, status: alertStatus },
-        });
+        },
+        url: req.originalUrl,
+        sets: banks,
+        alert: { message: alertMessage, status: alertStatus },
       });
     } catch (error) {
       req.flash("alertMessage", `${error.message}`);
       req.flash("alertStatus", "danger");
-      res.redirect("/admin/banks");
+      res.redirect("/admin");
     }
   },
   addBank: async (req, res) => {
@@ -193,10 +207,11 @@ module.exports = {
         body: { name, accountNumber, accountOwner },
         file,
       } = req;
+      const media = await Media.create(await uploader(file));
 
       await Bank.create({
         name,
-        imageId: await uploader(file),
+        bankLogo: media._id,
         accountNumber,
         accountOwner,
       });
@@ -225,8 +240,13 @@ module.exports = {
       const oldAccountOwner = bank.accountOwner;
 
       if (file !== undefined) {
-        await deleteImage(bank.imageId).then(async (result) => {
-          bank.imageId = await uploader(file);
+        await deleteImage(bank.bankLogo._id).then(async (result) => {
+          const newMedia = await Media.create(await uploader(file));
+          const oldBankLogo = await Media.findOne({ _id: bank.bankLogo });
+
+          bank.bankLogo = newMedia._id;
+          await deleteImage(oldBankLogo._id);
+          await oldBankLogo.remove();
         });
       }
       bank.name = name;
@@ -251,9 +271,11 @@ module.exports = {
         params: { id },
       } = req;
       const bank = await Bank.findOne({ _id: id });
-      const { name, imageId, accountNumber, accountOwner } = bank;
+      const { name, bankLogo, accountNumber, accountOwner } = bank;
+      const media = await Media.findOne({ _id: bankLogo });
 
-      await deleteImage(imageId);
+      await deleteImage(media.mediaId);
+      await media.remove();
       await bank.remove();
       req.flash(
         "alertMessage",
