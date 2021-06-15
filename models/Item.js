@@ -15,19 +15,23 @@ const schema = new mongoose.Schema({
   },
   country: {
     type: String,
-    defaulr: "Indonesia",
+    default: "Indonesia",
   },
-  popular: {
+  isPopular: {
     type: Boolean,
   },
   description: {
     type: String,
     required: true,
   },
-  image: [
+  category: {
+    type: ObjectId,
+    ref: "Category",
+  },
+  media: [
     {
       type: ObjectId,
-      ref: "Image",
+      ref: "Media",
     },
   ],
   features: [

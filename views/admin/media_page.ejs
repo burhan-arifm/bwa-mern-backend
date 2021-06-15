@@ -1,5 +1,4 @@
-            <%- include('../partials/upper-docs.ejs', {adds: `<!-- Custom styles for this page -->
-                <link href="/css/dataTables.bootstrap4.min.css" rel="stylesheet">`}) %>
+            <%- include('../partials/upper-docs.ejs') %>
 
             <!-- Begin Page Content -->
             <div class="container-fluid">
@@ -11,18 +10,28 @@
                         </button>
                     </div>
                 <% } %>
+
                 <!-- Page Heading -->
                 <h1 class="h3 mb-4 text-gray-800"><%= title %></h1>
-
-                <!-- DataTales Example -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
                         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addModal">
-                            <i class="fas fa-plus"></i> Add New <%= title %>
+                            <i class="fas fa-plus"></i> Add New Media
                         </button>
                     </div>
-                    <%- include('../components/table.ejs') %>
+                    <div id="thumbnails" class="card-body">
+                        <% if (typeof(sets)!=="undefined") { %>
+                            <% sets.forEach((set) => { %>
+                                    <img src="<%= set.thumbnail %>" alt="Media Thumbnail" class="img-thumbnail" onclick="<%= `handleImageClick(${JSON.stringify(set)})` %>" role="button">
+                            <% }) %>
+                        <% } else {%>
+                            <strong>No Media Inserted</strong>
+                        <% } %>
+                    </div>
                 </div>
+                <a type="button" class="btn btn-primary mt-1" href="/admin/items">
+                    <i class="fas fa-chevron-left"></i> Back to item list
+                </a>
             </div>
             <!-- /.container-fluid -->
         </div>
@@ -34,14 +43,6 @@
 </div>
 <!-- End of Page Wrapper -->
 <%- include('../components/form-modal.ejs', {type: "add"}) %>
-<%- include('../components/form-modal.ejs', {type: "edit"}) %>
+<%- include('../components/image-modal.ejs') %>
 <%- include('../partials/bottom-docs.ejs', {adds: `<!-- Page level plugins -->
-    <script src="/js/jquery.dataTables.min.js"></script>
-    <script src="/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdn.ckeditor.com/ckeditor5/27.1.0/classic/ckeditor.js"></script>
-    <script src="/js/inject-update.js"></script>
-    <script src="/js/inject-image-preview.js"></script>
-    <script src="/js/inject-texteditor.js"></script>
-
-    <!-- Page level custom scripts -->
-    <script src="/js/datatables-demo.js"></script>`}) %>
+    <script src="/js/inject-image-preview.js"></script>`}) %>

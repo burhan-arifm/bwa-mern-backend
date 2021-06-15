@@ -1,0 +1,14 @@
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="ImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <img id="image-preview" src="https://via.placeholder.com/150.png?text=Preview+Image" alt="<%= title %>" class="img-fluid">
+            </div>
+            <div class="modal-footer">
+                <form id="delete-image" action="<%= `${url}/id?_method=DELETE` %>" method="POST"></form>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-danger" form="delete-image">Delete this media</button>
+            </div>
+        </div>
+    </div>
+</div>

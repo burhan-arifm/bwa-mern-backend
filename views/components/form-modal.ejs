@@ -15,13 +15,13 @@
                             <% if(input.type==='file') { %>
                                 <div class="custom-file">
                                     <% if (input.canMultiple) {%>
-                                        <% if(input.type==="edit") {%>
+                                        <% if(type==="edit") {%>
                                             <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" multiple >
                                         <% } else { %>
                                             <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" required multiple >
                                         <% } %>
                                     <% } else { %>
-                                        <% if(input.type==="edit") {%>
+                                        <% if(type==="edit") {%>
                                             <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" >
                                         <% } else { %>
                                             <input type="file" class="custom-file-input" id="<%= `${type}${input.name}` %>" name="<%= input.name %>" onchange="handleImageUpload(this)" value="" required >

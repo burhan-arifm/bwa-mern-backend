@@ -291,18 +291,27 @@ module.exports = {
   },
   viewItem: async (req, res) => {
     try {
-      const items = await Item.find();
+      const items = await Item.find().populate({
+        path: "category",
+        select: `id name`,
+      });
       const alertMessage = req.flash("alertMessage");
       const alertStatus = req.flash("alertStatus");
+      const shapedItems = items.map((item) => ({
+        ...item._doc,
+        categoryName: item.category.name,
+        location: `${item.city}, ${item.country}`,
+        storedImages: item.media.length,
+      }));
 
       res.render("admin/table_page", {
         title: "Item",
         headers: [
-          { title: "Category", key: "categoryId" },
           { title: "Title", key: "title" },
           { title: "Price", key: "price" },
-          { title: "City", key: "city" },
-          { title: "Country", key: "country" },
+          { title: "Category", key: "categoryName" },
+          { title: "Location", key: "location" },
+          { title: "Images", key: "storedImages" },
         ],
         form: {
           size: "large",
@@ -322,7 +331,7 @@ module.exports = {
               type: "text",
               isRequired: true,
             },
-            { label: "Image", name: "image", type: "file", isRequired: true },
+            { label: "Image", name: "image", type: "file", canMultiple: true },
             {
               label: "Description",
               name: "description",
@@ -335,9 +344,264 @@ module.exports = {
           },
         },
         url: req.originalUrl,
-        sets: items,
+        sets: shapedItems,
         alert: { message: alertMessage, status: alertStatus },
       });
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin");
+    }
+  },
+  addItem: async (req, res) => {
+    try {
+      const {
+        body: { categoryId, title, price, city, country, description },
+        files,
+      } = req;
+      const category = await Category.findOne({ _id: categoryId });
+      const item = await Item.create({
+        category: category._id,
+        title,
+        price,
+        city,
+        country,
+        description,
+      });
+
+      category.items.push({ _id: item._id });
+      await category.save();
+
+      if (files.length > 0) {
+        Promise.all(files.map(async (file) => await uploader(file)))
+          .then((result) =>
+            Promise.all(
+              result.map(async (data) => {
+                const media = await Media.create(data);
+
+                return media._id;
+              })
+            ).then((data) => data)
+          )
+          .then(async (result) => {
+            item.media.push({ $each: result });
+            await item.save();
+
+            req.flash(
+              "alertMessage",
+              `New Item Added: ${title}, ${city}, ${country}`
+            );
+            req.flash("alertStatus", "success");
+            res.redirect("/admin/items");
+          });
+      } else {
+        req.flash(
+          "alertMessage",
+          `New Item Added: ${title}, ${city}, ${country}`
+        );
+        req.flash("alertStatus", "success");
+        res.redirect("/admin/items");
+      }
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
+  },
+  updateItem: async (req, res) => {
+    try {
+      const {
+        body: { categoryId, title, price, city, country, description },
+        files,
+        params: { itemId },
+      } = req;
+      const item = await Item.findOne({ _id: itemId });
+
+      if (categoryId !== undefined && item.category !== categoryId) {
+        const oldCategory = await Category.findOne({ _id: item.category });
+        const newCategory = await Category.findOne({ _id: categoryId });
+
+        oldCategory.items.pull(item._id);
+        await oldCategory.save();
+        newCategory.items.push({ _id: item._id });
+        await newCategory.save();
+        item.category = categoryId;
+      }
+
+      if (files.length > 0) {
+        Promise.all(files.map(async (file) => await uploader(file)))
+          .then((result) =>
+            Promise.all(
+              result.map(async (data) => {
+                const media = await Media.create(data);
+
+                return media._id;
+              })
+            ).then((data) => data)
+          )
+          .then(async (result) => {
+            item.media.push({ $each: result });
+            await item.save();
+
+            if (title !== undefined) item.title = title;
+            if (price !== undefined) item.price = price;
+            if (city !== undefined) item.city = city;
+            if (country !== undefined) item.country = country;
+            if (description !== undefined) item.description = description;
+
+            await item.save();
+            req.flash(
+              "alertMessage",
+              `Item Updated: ${title}, ${city}, ${country}`
+            );
+            req.flash("alertStatus", "success");
+            res.redirect("/admin/items");
+          });
+      } else {
+        if (title !== undefined) item.title = title;
+        if (price !== undefined) item.price = price;
+        if (city !== undefined) item.city = city;
+        if (country !== undefined) item.country = country;
+        if (description !== undefined) item.description = description;
+
+        await item.save();
+        req.flash(
+          "alertMessage",
+          `Item Updated: ${title}, ${city}, ${country}`
+        );
+        req.flash("alertStatus", "success");
+        res.redirect("/admin/items");
+      }
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
+  },
+  deleteItem: async (req, res) => {
+    try {
+      const {
+        params: { itemId },
+      } = req;
+      const item = await Item.findOne({ _id: itemId });
+      const category = await Category.findOne({ _id: item.category });
+      const { title, city, country } = item;
+
+      item.media.forEach(async (mediaId) => {
+        const media = await Media.findOne({ _id: mediaId });
+
+        await deleteImage(media.mediaId);
+        await media.remove();
+      });
+      category.items.pull(item._id);
+      await category.save();
+      await item.remove();
+
+      req.flash("alertMessage", `Item removed: ${title}, ${city}, ${country}`);
+      req.flash("alertStatus", "success");
+      res.redirect("/admin/items");
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
+  },
+  viewMedia: async (req, res) => {
+    try {
+      const {
+        params: { itemId },
+        originalUrl,
+      } = req;
+      const { title, media } = await Item.findOne({ _id: itemId });
+      const alertMessage = req.flash("alertMessage");
+      const alertStatus = req.flash("alertStatus");
+      const relatedMedia = media.map(async (id) => {
+        const media = await Media.findOne({ _id: id });
+        const { __v, mediaId, ...rest } = media._doc;
+
+        return { ...rest, imageId: mediaId };
+      });
+
+      Promise.all(relatedMedia).then((imageURLs) => {
+        res.render("admin/media_page", {
+          title: `${title}'s Media`,
+          form: {
+            size: "medium",
+            inputs: [
+              {
+                label: "Image",
+                name: "image",
+                type: "file",
+                isRequired: true,
+                canMultiple: true,
+              },
+            ],
+          },
+          url: originalUrl,
+          sets: imageURLs,
+          alert: { message: alertMessage, status: alertStatus },
+        });
+      });
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
+  },
+  addMedia: async (req, res) => {
+    try {
+      const {
+        files,
+        params: { itemId },
+      } = req;
+      const item = await Item.findOne({ _id: itemId });
+
+      Promise.all(files.map(async (file) => await uploader(file)))
+        .then((result) =>
+          Promise.all(
+            result.map(async (data) => {
+              const media = await Media.create(data);
+
+              return media._id;
+            })
+          ).then((data) => data)
+        )
+        .then(async (result) => {
+          item.media.push({ $each: result });
+          await item.save();
+
+          req.flash(
+            "alertMessage",
+            `${files.length} new image${
+              files.length > 1 ? "s" : ""
+            } added successfully.`
+          );
+          req.flash("alertStatus", "success");
+          res.redirect(req.originalUrl);
+        });
+    } catch (error) {
+      req.flash("alertMessage", `${error.message}`);
+      req.flash("alertStatus", "danger");
+      res.redirect("/admin/items");
+    }
+  },
+  deleteMedia: async (req, res) => {
+    try {
+      const {
+        headers: { referer },
+        params: { itemId, mediaId },
+      } = req;
+      const item = await Item.findOne({ _id: itemId });
+      const media = await Media.findOne({ _id: mediaId });
+
+      item.media.pull(media._id);
+      await item.save();
+      await deleteImage(media.mediaId);
+      await media.remove();
+
+      req.flash("alertMessage", "An image removed successfully.");
+      req.flash("alertStatus", "success");
+      res.redirect(referer);
     } catch (error) {
       req.flash("alertMessage", `${error.message}`);
       req.flash("alertStatus", "danger");
